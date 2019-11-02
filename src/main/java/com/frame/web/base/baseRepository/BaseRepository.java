@@ -15,8 +15,7 @@ import java.util.Map;
 public interface BaseRepository<T,ID extends Serializable> extends JpaRepository<T,ID> {
     @Transactional
     void deleteObject(T entity);
-    @Transactional
-    int deleteBatchById(Object[] ids);
+
     @Transactional
     int deleteByParam(Map<String, Object> params);
 

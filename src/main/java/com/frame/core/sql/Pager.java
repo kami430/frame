@@ -2,7 +2,7 @@ package com.frame.core.sql;
 
 import java.util.List;
 
-public class Pager {
+public class Pager<T> {
     // 默认页码
     public final static int DEFAULT_PAGE_INDEX = 1;
     // 默认分页大小
@@ -12,7 +12,7 @@ public class Pager {
     private int pageIndex;// 当前第几页
     private long totalRowCount;
     private int totalPageCount;
-    private List<?> objList;
+    private List<T> data;
     private String sort;
 
     public Pager(){
@@ -58,12 +58,12 @@ public class Pager {
         this.totalPageCount = totalPageCount;
     }
 
-    public List<?> getObjList() {
-        return objList;
+    public List<T> getData() {
+        return data;
     }
 
-    public void setObjList(List<?> objList) {
-        this.objList = objList;
+    public void setData(List<T> data) {
+        this.data = data;
     }
 
     public String getSort() {

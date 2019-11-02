@@ -18,9 +18,12 @@ public class UserServiceImpl implements UserService {
     private UserDao userDao;
 
     @Override
+    @Transactional
     public void saveUser(User user){
         user.setId(EncryptUtil.randomUUID());
         user.setSalt(EncryptUtil.randomUUID());
         userDao.saveOrUpdate(user);
+        user = null;
+        user.getAccount();
     }
 }

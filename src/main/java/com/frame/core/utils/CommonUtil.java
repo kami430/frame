@@ -1,10 +1,10 @@
 package com.frame.core.utils;
 
 
+import org.hibernate.validator.internal.util.privilegedactions.GetDeclaredFields;
+
 import java.lang.reflect.Field;
-import java.util.Map;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.*;
 import java.util.function.Consumer;
 
 public class CommonUtil {
@@ -129,5 +129,20 @@ public class CommonUtil {
      */
     public static int signCode(int n){
         return n>0?(int)((Math.random()*9+1)*Math.pow(10,n-1)):0;
+    }
+
+    /**
+     * 获取包含父类以内的所有字段
+     * @param entityClass
+     * @return
+     */
+    public static List<Field> getDeclaredFields(Class entityClass){
+        List<Field> fieldList = new ArrayList<>();
+        Class nowCalss = entityClass;
+        while (nowCalss!=null) {
+            fieldList.addAll(Arrays.asList(nowCalss.getDeclaredFields()));
+            nowCalss = nowCalss.getSuperclass();
+        }
+        return fieldList;
     }
 }

@@ -1,13 +1,11 @@
 package com.frame.web.base.baseRepository;
 
 import com.frame.core.sql.*;
-import com.frame.web.base.login.BaseUser;
-import com.safintel.sql.statement.SQL;
-import com.safintel.sql.statement.SelectBuilder;
+import com.frame.web.base.baseRepository.builder.HqlBuilder;
+import com.frame.web.base.baseRepository.builder.SqlBuilder;
 import org.hibernate.query.internal.NativeQueryImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.BeanUtils;
 import org.springframework.data.jpa.repository.support.JpaEntityInformation;
 import org.springframework.data.jpa.repository.support.SimpleJpaRepository;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,13 +17,8 @@ import javax.persistence.Query;
 import javax.persistence.Table;
 import java.io.Serializable;
 import java.lang.reflect.Field;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
-
-import static com.safintel.sql.statement.Predicates.in;
 
 public class BaseRepositoryImpl<T, ID extends Serializable> extends SimpleJpaRepository<T, ID> implements BaseRepository<T, ID> {
 
@@ -64,17 +57,6 @@ public class BaseRepositoryImpl<T, ID extends Serializable> extends SimpleJpaRep
     }
 
     /**
-     * 批量删除 by Object[]
-     */
-    @Override
-    @Transactional
-    public int deleteBatchById(Object[] ids) {
-        Assert.notNull(ids, "ids不能为空");
-        Query query = entityManager.createQuery(SQL.delete(this.entityClass.getSimpleName()).where(in(pkname, ids)).toSql());
-        return query.executeUpdate();
-    }
-
-    /**
      * 根据字段删除
      *
      * @param params
@@ -85,9 +67,8 @@ public class BaseRepositoryImpl<T, ID extends Serializable> extends SimpleJpaRep
     public int deleteByParam(Map<String, Object> params) {
         Assert.notNull(params, "参数不能为空");
         StringBuilder sqlBuilder = new StringBuilder("DELETE FROM ").append(this.tablename);
-        List<String> wheres = params.keySet().stream().map(key -> {
-            return new StringBuilder(key).append(" =:").append(key).toString();
-        }).collect(Collectors.toList());
+        List<String> wheres = params.keySet().stream().map(key -> new StringBuilder(key).append(" =:").append(key).toString())
+                .collect(Collectors.toList());
         appendList(sqlBuilder, wheres, " where ", " and ");
         Query query = entityManager.createNativeQuery(sqlBuilder.toString());
         params.forEach((key, val) -> {
@@ -129,7 +110,7 @@ public class BaseRepositoryImpl<T, ID extends Serializable> extends SimpleJpaRep
                 Map<String, Object> params = new HashMap<>();
                 sql = updateBuilder(entity, params);
                 Query query = addParams(entityManager.createQuery(sql), params);
-                int resultCount = query.executeUpdate();
+                query.executeUpdate();
             }
             entityManager.close();
             return entity;
@@ -149,7 +130,7 @@ public class BaseRepositoryImpl<T, ID extends Serializable> extends SimpleJpaRep
     public Object findOne(Map<String, Object> params) {
         try {
             Assert.notNull(params, "params:params不能为null！");
-            SelectBuilder hqlBuilder = new SelectBuilder(this.entityClass.getSimpleName() + " t").column("t");
+            HqlBuilder hqlBuilder = new HqlBuilder(this.entityClass.getSimpleName(), "t");
             params.entrySet().forEach(entry -> {
                 hqlBuilder.where(entry.getKey() + "= :" + entry.getKey());
             });
@@ -174,7 +155,7 @@ public class BaseRepositoryImpl<T, ID extends Serializable> extends SimpleJpaRep
     @Override
     public List<T> findAll(Map<String, Object> params) {
         Assert.notNull(params, "params:params不能为null！");
-        SelectBuilder hqlBuilder = new SelectBuilder(this.entityClass.getSimpleName() + " t").column("t");
+        HqlBuilder hqlBuilder = new HqlBuilder(this.entityClass.getSimpleName(), "t");
         params.entrySet().forEach(entry -> {
             hqlBuilder.where(entry.getKey() + "= :" + entry.getKey());
         });
@@ -195,7 +176,7 @@ public class BaseRepositoryImpl<T, ID extends Serializable> extends SimpleJpaRep
     @Override
     public Integer findAllCount(Map<String, Object> params) {
         Assert.notNull(params, "params:params不能为null！");
-        SelectBuilder hqlBuilder = new SelectBuilder(this.entityClass.getSimpleName() + " t").column("t");
+        HqlBuilder hqlBuilder = new HqlBuilder(this.entityClass.getSimpleName(), "t");
         params.entrySet().forEach(entry -> {
             hqlBuilder.where(entry.getKey() + "= :" + entry.getKey());
         });
@@ -213,7 +194,7 @@ public class BaseRepositoryImpl<T, ID extends Serializable> extends SimpleJpaRep
     @Override
     public Pager findByPage(Pager page) {
         Assert.notNull(page, "PageUtil:page不能为null！");
-        SelectBuilder hqlBuilder = new SelectBuilder(this.entityClass.getSimpleName() + " t").column("t")
+        HqlBuilder hqlBuilder = new HqlBuilder(this.entityClass.getSimpleName(), "t")
                 .orderBy(page.getSort().trim());
         logger.info("执行语句findByPage：" + hqlBuilder);
         // 数据
@@ -221,7 +202,7 @@ public class BaseRepositoryImpl<T, ID extends Serializable> extends SimpleJpaRep
         query.setFirstResult((page.getPageIndex() - 1) * page.getPageSize());
         query.setMaxResults(page.getPageSize());
         List<T> list = query.getResultList();
-        page.setObjList(list);
+        page.setData(list);
         // 页码
         logger.info("执行语句findByPage-Count：" + hqlBuilder.toCountString());
         query = entityManager.createQuery(hqlBuilder.toCountString());
@@ -324,7 +305,7 @@ public class BaseRepositoryImpl<T, ID extends Serializable> extends SimpleJpaRep
         query.setFirstResult((page.getPageIndex() - 1) * page.getPageSize());
         query.setMaxResults(page.getPageSize());
         List<T> list = query.getResultList();
-        page.setObjList(list);
+        page.setData(list);
         // 分页
         logger.info("执行语句findByHql-count：" + toCountString(hql));
         query = entityManager.createQuery(toCountString(hql));
@@ -348,7 +329,7 @@ public class BaseRepositoryImpl<T, ID extends Serializable> extends SimpleJpaRep
         query.setFirstResult((page.getPageIndex() - 1) * page.getPageSize());
         query.setMaxResults(page.getPageSize());
         List<T> list = query.getResultList();
-        page.setObjList(list);
+        page.setData(list);
         // 分页
         logger.info("执行语句findByHql-count：" + toCountString(hql));
         query = entityManager.createQuery(toCountString(hql));
@@ -362,7 +343,7 @@ public class BaseRepositoryImpl<T, ID extends Serializable> extends SimpleJpaRep
 
     @Override
     public Pager findByHql(Pager page, Map<String, Object> params) {
-        SelectBuilder hqlBuilder = new SelectBuilder(this.entityClass.getSimpleName() + " t").column("t");
+        HqlBuilder hqlBuilder = new HqlBuilder(this.entityClass.getSimpleName(), "t");
         params.entrySet().forEach(entry -> {
             hqlBuilder.where(entry.getKey() + "= :" + entry.getKey());
         });
@@ -373,7 +354,7 @@ public class BaseRepositoryImpl<T, ID extends Serializable> extends SimpleJpaRep
         query.setFirstResult((page.getPageIndex() - 1) * page.getPageSize());
         query.setMaxResults(page.getPageSize());
         List<T> list = query.getResultList();
-        page.setObjList(list);
+        page.setData(list);
         // 分页
         logger.info("执行语句findByHql-count：" + hqlBuilder.toCountString());
         query = entityManager.createQuery(hqlBuilder.toCountString());
@@ -405,11 +386,11 @@ public class BaseRepositoryImpl<T, ID extends Serializable> extends SimpleJpaRep
         if (dClass == Record.class) {
             query.unwrap(NativeQueryImpl.class).setResultTransformer(AliasToRecordTransformer.INSTANCE);
             List<Record> list = query.getResultList();
-            page.setObjList(list);
+            page.setData(list);
         } else {
             query.unwrap(NativeQueryImpl.class).setResultTransformer(new AliasToBeanTransformer(dClass));
             List<D> list = query.getResultList();
-            page.setObjList(list);
+            page.setData(list);
         }
         // 分页
         logger.info("执行语句findBySql-count：" + toCountString(sql));
@@ -435,11 +416,11 @@ public class BaseRepositoryImpl<T, ID extends Serializable> extends SimpleJpaRep
         if (dClass == Record.class) {
             query.unwrap(NativeQueryImpl.class).setResultTransformer(AliasToRecordTransformer.INSTANCE);
             List<Record> list = query.getResultList();
-            page.setObjList(list);
+            page.setData(list);
         } else {
             query.unwrap(NativeQueryImpl.class).setResultTransformer(new AliasToBeanTransformer(dClass));
             List<D> list = query.getResultList();
-            page.setObjList(list);
+            page.setData(list);
         }
         // 分页
         logger.info("执行语句findBySql-count：" + toCountString(sql));
@@ -454,28 +435,28 @@ public class BaseRepositoryImpl<T, ID extends Serializable> extends SimpleJpaRep
 
     @Override
     public <D> Pager findBySql(Class<D> dClass, Pager page, Map<String, Object> params) {
-        SelectBuilder hqlBuilder = new SelectBuilder(this.entityClass.getSimpleName());
+        SqlBuilder sqlBuilder = new SqlBuilder(this.entityClass.getSimpleName());
         params.entrySet().forEach(entry -> {
-            hqlBuilder.where(entry.getKey() + "= :" + entry.getKey());
+            sqlBuilder.where(entry.getKey() + "= :" + entry.getKey());
         });
         // 数据
-        logger.info("执行语句findByHql：" + hqlBuilder);
-        Query query = entityManager.createQuery(hqlBuilder.toString());
+        logger.info("执行语句findByHql：" + sqlBuilder);
+        Query query = entityManager.createQuery(sqlBuilder.toString());
         query = addParams(query, params);
         query.setFirstResult((page.getPageIndex() - 1) * page.getPageSize());
         query.setMaxResults(page.getPageSize());
         if (dClass == Record.class) {
             query.unwrap(NativeQueryImpl.class).setResultTransformer(AliasToRecordTransformer.INSTANCE);
             List<Record> list = query.getResultList();
-            page.setObjList(list);
+            page.setData(list);
         } else {
             query.unwrap(NativeQueryImpl.class).setResultTransformer(new AliasToBeanTransformer(dClass));
             List<D> list = query.getResultList();
-            page.setObjList(list);
+            page.setData(list);
         }
         // 分页
-        logger.info("执行语句findByHql-count：" + hqlBuilder.toCountString());
-        query = entityManager.createQuery(hqlBuilder.toCountString());
+        logger.info("执行语句findByHql-count：" + sqlBuilder.toCountString());
+        query = entityManager.createQuery(sqlBuilder.toCountString());
         query = addParams(query, params);
         Number number = (Number) query.getSingleResult();
         page.setTotalRowCount(number.intValue());
@@ -532,8 +513,8 @@ public class BaseRepositoryImpl<T, ID extends Serializable> extends SimpleJpaRep
     /* 获取主键 */
     @Override
     public String getPkname() {
-        Field[] fields = this.entityClass.getDeclaredFields();
-        for (Field field : fields) {
+        List<Field> fieldList = getDeclaredFields(this.entityClass);
+        for (Field field : fieldList) {
             if (field.isAnnotationPresent(Id.class)) {
                 this.pkname = field.getName();
                 break;
@@ -545,19 +526,14 @@ public class BaseRepositoryImpl<T, ID extends Serializable> extends SimpleJpaRep
     /* 获取主键值*/
     public Object getPkValue(T entity) {
         try {
-            Class nowCalss = this.entityClass;
-            while(!nowCalss.equals(Object.class)){
-                Field[] fields = nowCalss.getDeclaredFields();
-                for (Field field : fields) {
-                    if (field.isAnnotationPresent(Id.class)) {
-                        field.setAccessible(true);
-                        return field.get(entity);
-                    }
+            List<Field> fieldList = getDeclaredFields(this.entityClass);
+            for (Field field : fieldList) {
+                if (field.isAnnotationPresent(Id.class)) {
+                    field.setAccessible(true);
+                    return field.get(entity);
                 }
-                nowCalss = this.entityClass.getSuperclass();
             }
         } catch (Exception e) {
-            return null;
         }
         return null;
     }
@@ -575,8 +551,18 @@ public class BaseRepositoryImpl<T, ID extends Serializable> extends SimpleJpaRep
         }
     }
 
+    private List<Field> getDeclaredFields(Class entityClass) {
+        List<Field> fieldList = new ArrayList<>();
+        Class nowCalss = entityClass;
+        while (nowCalss!=null) {
+            fieldList.addAll(Arrays.asList(nowCalss.getDeclaredFields()));
+            nowCalss = nowCalss.getSuperclass();
+        }
+        return fieldList;
+    }
+
     private String toCountString(String sql) {
-        SelectBuilder sqlBuilder = new SelectBuilder()
+        SqlBuilder sqlBuilder = new SqlBuilder()
                 .column("COUNT(*)")
                 .from(new StringBuilder("(").append(sql).append(")tmp").toString());
         return sqlBuilder.toString();
