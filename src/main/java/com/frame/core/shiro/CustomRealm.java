@@ -1,6 +1,7 @@
 package com.frame.core.shiro;
 
 import com.frame.web.base.login.BaseUser;
+import com.frame.web.base.login.LoginRoleUserRefDao;
 import com.frame.web.base.login.LoginUserDao;
 import org.apache.shiro.authc.*;
 import org.apache.shiro.authz.AuthorizationInfo;
@@ -11,11 +12,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.util.StringUtils;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 @Configuration
 public class CustomRealm extends AuthorizingRealm {
 
     @Autowired
     private LoginUserDao loginUserdao;
+    @Autowired
+    private LoginRoleUserRefDao loginRoleUserRefDao;
 
     @Override
     public boolean supports(AuthenticationToken token) {
@@ -28,10 +34,10 @@ public class CustomRealm extends AuthorizingRealm {
         SimpleAuthorizationInfo authorizationInfo = new SimpleAuthorizationInfo();
         authorizationInfo.addRole("user"); // 初始角色user
         // 获取人员角色
-        //        List<String> roles = Optional.ofNullable(roleService.roleRefList(null,user.getAccount())).orElse(new ArrayList<>()).stream()
-        //                .map(record -> record.get("code").toString())
-        //                .collect(Collectors.toList());
-        //        authorizationInfo.addRoles(roles);
+        List<String> roles = loginRoleUserRefDao.findAllByAccount(loginUser.getAccount()).parallelStream()
+                .map(ref->ref.getRole()).collect(Collectors.toList());
+        authorizationInfo.addRoles(roles);
+        // 获取人员权限
         //        List<String> permissions = new ArrayList<>();
         //        permissions.add("userInfo:add");
         //        authorizationInfo.addStringPermissions(permissions);

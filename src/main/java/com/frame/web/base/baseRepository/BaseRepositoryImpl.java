@@ -480,6 +480,20 @@ public class BaseRepositoryImpl<T, ID extends Serializable> extends SimpleJpaRep
         });
     }
 
+    @Override
+    @Transactional
+    public void refRuleOperation(RefRule<T> rule) {
+        switch (rule.getRule()) {
+            case INSERT:
+                save(rule.getEntity());
+                break;
+            case DELETE:
+                delete(rule.getEntity());
+                break;
+        }
+    }
+
+
     /* 公用 - 添加参数值 Map */
     private Query addParams(Query query, Map<String, Object> params) {
         if (params != null) {
