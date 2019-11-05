@@ -1,6 +1,7 @@
 package com.frame.core.shiro;
 
 import com.frame.core.shiro.filter.JWTFilter;
+import org.apache.shiro.cache.ehcache.EhCacheManager;
 import org.apache.shiro.mgt.SecurityManager;
 import org.apache.shiro.session.mgt.SessionManager;
 import org.apache.shiro.spring.security.interceptor.AuthorizationAttributeSourceAdvisor;
@@ -50,11 +51,11 @@ public class ShiroConfig {
     }
 
     @Bean
-    public SecurityManager securityManager(CustomRealm realm, SessionManager sessionManager) {
+    public SecurityManager securityManager(CustomRealm realm, EhCacheManager cacheManager,SessionManager sessionManager) {
         DefaultWebSecurityManager securityManager = new DefaultWebSecurityManager();
         realm.setCredentialsMatcher(new CustomCredentialsMatcher());
         securityManager.setRealm(realm);
-//        securityManager.setCacheManager(cacheManager);
+        securityManager.setCacheManager(cacheManager);
         securityManager.setSessionManager(sessionManager);
         return securityManager;
     }
@@ -68,12 +69,12 @@ public class ShiroConfig {
     }
 
 
-//    @Bean
-//    public EhCacheManager ehCacheManager() {
-//        EhCacheManager cacheManager = new EhCacheManager();
-//        cacheManager.setCacheManagerConfigFile("classpath:ehcache-shiro.xml");
-//        return cacheManager;
-//    }
+    @Bean
+    public EhCacheManager ehCacheManager() {
+        EhCacheManager cacheManager = new EhCacheManager();
+        cacheManager.setCacheManagerConfigFile("classpath:ehcache-shiro.xml");
+        return cacheManager;
+    }
 
     /**
      * @return
