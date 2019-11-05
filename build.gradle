@@ -23,6 +23,7 @@ dependencies {
     // autch
     implementation group: 'org.apache.shiro', name: 'shiro-spring', version: '1.4.0'
     implementation group: 'com.auth0', name: 'java-jwt', version: '3.8.3'
+    implementation group: 'org.apache.shiro', name: 'shiro-ehcache', version: '1.4.0'
 
     // database
     implementation group: 'mysql', name: 'mysql-connector-java', version: '8.0.18'

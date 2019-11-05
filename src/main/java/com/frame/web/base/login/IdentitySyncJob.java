@@ -15,8 +15,11 @@ import java.util.stream.Collectors;
 public class IdentitySyncJob {
 
     private static final long SECOND = 1000;
+
     @Autowired
     private LoginUserDao loginUserdao;
+    @Autowired
+    private LoginRoleDao loginRoleDao;
     @Autowired
     private IdentityService identityService;
 
@@ -39,4 +42,22 @@ public class IdentitySyncJob {
                 .forEach(user -> identityService.deleteUser(user.getId()));
     }
 
+    @Scheduled(fixedRate = 60 * SECOND)
+    public void identityRoleSync() {
+        loginRoleDao.findAllBySync(Sync.PENDING.getInt()).forEach(role -> {
+            if (identityService.createGroupQuery().groupId(role.getCode()).singleResult() == null) {
+                identityService.saveGroup(identityService.newGroup(role.getCode()));
+            }
+            role.setSync(Sync.ACTIVE.getInt());
+            loginRoleDao.save(role);
+        });
+    }
+
+    @Scheduled(fixedRate = 60 * SECOND)
+    public void identityRoleDeleteSync() {
+        List<String> groups = loginRoleDao.findAllBySync(Sync.ACTIVE.getInt()).parallelStream()
+                .map(role -> role.getCode()).collect(Collectors.toList());
+        identityService.createGroupQuery().list().parallelStream().filter(group -> !groups.contains(group.getId()))
+                .forEach(group -> identityService.deleteGroup(group.getId()));
+    }
 }

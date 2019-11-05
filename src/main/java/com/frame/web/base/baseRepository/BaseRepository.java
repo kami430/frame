@@ -59,7 +59,11 @@ public interface BaseRepository<T,ID extends Serializable> extends JpaRepository
 
     <D> Pager findBySql(Class<D> dClass, Pager page, Map<String, Object> params);
 
+    @Transactional
     void refRuleOperation(List<RefRule<T>> rules);
+
+    @Transactional
+    void refRuleOperation(RefRule<T> rule);
 
     /* 获取表名 */
     String getTableName(Class<?> clazz);
