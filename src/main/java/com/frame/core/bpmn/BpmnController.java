@@ -3,7 +3,7 @@ package com.frame.core.bpmn;
 
 import org.camunda.bpm.engine.*;
 
-public abstract class AbstractController {
+public abstract class BpmnController {
 
     protected ProcessEngine processEngine;
     protected RepositoryService repositoryService;
@@ -13,7 +13,7 @@ public abstract class AbstractController {
     protected ManagementService managementService;
 
 
-    public AbstractController() {
+    public BpmnController() {
         super();
         processEngine = ProcessEngines.getDefaultProcessEngine();
         repositoryService = processEngine.getRepositoryService();
