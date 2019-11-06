@@ -6,7 +6,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 @SpringBootApplication
-@EnableJpaRepositories(basePackages = "com.frame.web.business.dao",repositoryFactoryBeanClass = BaseRepositoryFactoryBean.class)
+@EnableJpaRepositories(basePackages = {"com.frame.web"},repositoryFactoryBeanClass = BaseRepositoryFactoryBean.class)
 public class FrameApplication {
 
     public static void main(String[] args) {
