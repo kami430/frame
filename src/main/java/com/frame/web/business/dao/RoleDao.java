@@ -12,7 +12,4 @@ import java.util.List;
 public interface RoleDao extends BaseRepository<Role,String>, LoginRoleDao {
     @Override
     List<BaseRole> findAllBySync(Integer sync);
-
-    @Override
-    BaseRole save(BaseRole baseRole);
 }

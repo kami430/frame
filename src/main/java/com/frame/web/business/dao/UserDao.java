@@ -16,7 +16,4 @@ public interface UserDao extends BaseRepository<User, String>, LoginUserDao {
 
     @Override
     List<BaseUser> findAllBySync(Integer sync);
-
-    @Override
-    BaseUser save(BaseUser baseUser);
 }
